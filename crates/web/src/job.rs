@@ -9,6 +9,7 @@ pub struct Job {
     status: JobStatus,
     started_at: Option<SystemTime>,
     finished_at: Option<SystemTime>,
+    max_retry_count: u32,
 }
 
 #[derive(PartialEq, Eq)]
@@ -20,6 +21,13 @@ pub enum JobStatus {
 }
 
 const MAX_RETRY_COUNT: u32 = 3;
+
+fn format_time_to_string(timestamp: Option<SystemTime>) -> String {
+     match timestamp {
+        Some(time) => time.elapsed().unwrap().as_micros().to_string(),
+        None => { "No finish time".to_owned() }
+    }
+}
 
 impl fmt::Display for JobStatus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -36,7 +44,7 @@ impl Job {
     pub fn create(name: String) -> Job {
         let id = rand::rng().random();
         println!("Job {} created, Job Id: {}", name, id);
-        Job { name, id, retry_count: 0, status: JobStatus::Queued, started_at: None, finished_at: None }
+        Job { name, id, retry_count: 0, status: JobStatus::Queued, started_at: None, finished_at: None, max_retry_count: MAX_RETRY_COUNT }
     }
 
     pub fn start(&mut self) {
@@ -49,16 +57,20 @@ impl Job {
         }
     }
 
-    pub fn get_name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
+
+    pub fn retry_count(&self) -> u32 { self.retry_count }
+
+    pub fn max_retry_count(&self) -> u32 { self.max_retry_count }
 
     pub fn is_queued(&self) -> bool {
         self.status == JobStatus::Queued
     }
 
     pub fn check_is_max_retry_count(&self) -> bool {
-        self.retry_count >= MAX_RETRY_COUNT
+        self.retry_count >= self.max_retry_count
     }
 
     fn retry(&mut self) {
@@ -94,6 +106,7 @@ impl Job {
     }
 
     pub fn print_status(&self) {
-        println!("Job Id: {}, Job Name: {}, Job Status: {}, Retry Count: {}",self.id, self.name, self.status, self.retry_count);
+        println!("Job Id: {}, Job Name: {}, Job Status: {}, Retry Count: {}, Started At: {}, Finished At: {}",
+                 self.id, self.name, self.status, self.retry_count, format_time_to_string(self.started_at), format_time_to_string(self.finished_at));
     }
 }
