@@ -65,9 +65,21 @@ impl Job {
 
     pub fn max_retry_count(&self) -> u32 { self.max_retry_count }
 
+    pub fn started_at(&self) -> Option<SystemTime> { self.started_at }
+
+    pub fn finished_at(&self) -> Option<SystemTime> { self.finished_at }
+
     pub fn is_queued(&self) -> bool {
         self.status == JobStatus::Queued
     }
+
+    pub fn is_running(&self) -> bool { self.status == JobStatus::Running }
+
+    pub fn is_done(&self) -> bool { self.status == JobStatus::Done }
+
+    pub fn is_failed(&self) -> bool { self.status == JobStatus::Failed }
+
+    pub fn status(&self) -> &JobStatus { &self.status}
 
     pub fn check_is_max_retry_count(&self) -> bool {
         self.retry_count >= self.max_retry_count
@@ -108,5 +120,66 @@ impl Job {
     pub fn print_status(&self) {
         println!("Job Id: {}, Job Name: {}, Job Status: {}, Retry Count: {}, Started At: {}, Finished At: {}",
                  self.id, self.name, self.status, self.retry_count, format_time_to_string(self.started_at), format_time_to_string(self.finished_at));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::job::{Job};
+
+    // creating job
+    #[test]
+    fn test_creating_job() {
+        let job = Job::create("Job".to_string());
+
+        assert_eq!(job.retry_count(), 0);
+        assert!(job.is_queued());
+        assert_eq!(job.started_at(), None);
+        assert_eq!(job.finished_at(), None);
+    }
+
+    // starting job
+    #[test]
+    fn test_starting_job() {
+        let mut job = Job::create("Job".to_string());
+        assert!(job.is_queued());
+        job.start();
+        assert!(!job.is_queued());
+        assert!(job.is_running());
+        assert!(matches!(job.started_at, Some(_)));
+    }
+
+    // finishing job
+    #[test]
+    fn test_finishing_job() {
+        let mut job = Job::create("Job".to_string());
+        job.start();
+        job.finish();
+        assert!(job.is_done());
+        assert!(matches!(job.finished_at, Some(_)));
+    }
+
+    // fail does retry
+    #[test]
+    fn test_fail_retry() {
+        let mut job = Job::create("Job".to_string());
+        job.start();
+        job.fail();
+        assert!(job.is_queued());
+        assert_eq!(job.retry_count(), 1);
+    }
+
+    // fails job after max retry limit
+    #[test]
+    fn test_fail_totally() {
+        let mut job = Job::create("Job".to_string());
+        job.start();
+        job.fail();
+        job.start();
+        job.fail();
+        job.start();
+        job.fail();
+        assert!(job.is_failed());
+        assert!(matches!(job.finished_at, Some(_)));
     }
 }

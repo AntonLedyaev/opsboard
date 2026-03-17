@@ -1,4 +1,4 @@
-use crate::job::Job;
+use crate::job::{Job, JobStatus};
 use crate::queue::Queue;
 
 pub struct Runner<'a> {
@@ -14,7 +14,7 @@ impl<'a> Runner<'a> {
         Runner { queue }
     }
 
-    fn get_next_queued_job(&mut self) -> Option<&mut Job> {
+    pub fn get_next_queued_job(&mut self) -> Option<&mut Job> {
         self.queue.find_next_queued_job_mut()
     }
 
@@ -44,4 +44,53 @@ impl<'a> Runner<'a> {
         println!("Queue completed, final state is: ");
         self.queue.list_jobs();
     }
+
+    pub fn get_job_statuses(&self) -> Vec<&JobStatus> {
+        self.queue.get_job_statuses()
+    }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::job::JobStatus;
+    use crate::queue::Queue;
+    use crate::runner::Runner;
+
+    // empty queue
+    #[test]
+    fn test_run_empty_queue() {
+        let mut queue = Queue::new(vec![]);
+        let mut runner = Runner::new(&mut queue);
+        runner.run_queue();
+        assert!(matches!(runner.get_next_queued_job(), None));
+    }
+
+    // runs successful queue
+    #[test]
+    fn test_run_successful_queue() {
+        let mut queue = Queue::new(vec!["Job1", "Job2", "Job3"]);
+        let mut runner = Runner::new(&mut queue);
+        runner.run_queue();
+
+        let result = runner.get_job_statuses();
+
+        for status in result {
+            assert!(matches!(status, JobStatus::Done));
+        }
+    }
+
+    // runs mixed queue
+    #[test]
+    fn test_run_mixed_queue() {
+        let mut queue = Queue::new(vec!["Job1", "Job2_fail", "Job3"]);
+        let mut runner = Runner::new(&mut queue);
+        runner.run_queue();
+
+        let result = runner.get_job_statuses();
+
+        assert!(matches!(result[0], JobStatus::Done));
+        assert!(matches!(result[1], JobStatus::Failed));
+        assert!(matches!(result[2], JobStatus::Done));
+    }
+}
+
