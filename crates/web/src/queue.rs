@@ -35,9 +35,13 @@ impl Queue {
             job.print_status();
         }
     }
+
+    pub fn get_jobs(&self) -> &Vec<Job> {
+        &self.jobs
+    }
     
-    pub fn get_job_statuses(&self) -> Vec<&JobStatus> {
-        self.jobs.iter().map(|job| job.status( )).collect()
+    pub fn get_job_statuses(&self) -> Vec<JobStatus> {
+        self.jobs.iter().map(|job| job.status().to_owned()).collect()
     }
 }
 

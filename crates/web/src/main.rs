@@ -1,15 +1,24 @@
 mod job;
 mod queue;
 mod runner;
+mod api;
+mod app_state;
 
+use crate::app_state::AppState;
 use crate::queue::Queue;
-use crate::runner::Runner;
 
-fn main() {
-    let mut queue = Queue::new(vec!["Job1", "Job2", "Job3"]);
-    queue.add_job("Job4_fail");
-    queue.list_jobs();
+#[tokio::main]
+async fn main() {
+    let queue = Queue::new(vec!["Job1", "Job2"]);
+    let state = AppState::new(queue);
 
-    let mut runner = Runner::new(&mut queue);
-    runner.run_queue();
+    let app = api::api_router().with_state(state);
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+        .await
+        .unwrap();
+
+    println!("Server running on http://127.0.0.1:3000");
+
+    axum::serve(listener, app).await.unwrap();
 }

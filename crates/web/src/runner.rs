@@ -45,7 +45,7 @@ impl<'a> Runner<'a> {
         self.queue.list_jobs();
     }
 
-    pub fn get_job_statuses(&self) -> Vec<&JobStatus> {
+    pub fn get_job_statuses(&self) -> Vec<JobStatus> {
         self.queue.get_job_statuses()
     }
 }

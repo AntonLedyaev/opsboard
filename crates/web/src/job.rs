@@ -1,7 +1,9 @@
 use std::fmt;
 use std::time::SystemTime;
 use rand::{RngExt};
+use serde::{Serialize};
 
+#[derive(Clone)]
 pub struct Job {
     id: u32,
     name: String,
@@ -12,7 +14,7 @@ pub struct Job {
     max_retry_count: u32,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Serialize, PartialEq, Eq, Clone)]
 pub enum JobStatus {
     Queued,
     Running,
@@ -60,6 +62,8 @@ impl Job {
     pub fn name(&self) -> &str {
         &self.name
     }
+
+    pub fn id(&self) -> u32 { self.id }
 
     pub fn retry_count(&self) -> u32 { self.retry_count }
 
