@@ -1,13 +1,12 @@
-use std::sync::{Arc, Mutex};
-use crate::queue::Queue;
+use sqlx::SqlitePool;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub queue: Arc<Mutex<Queue>>,
+    pub pool: SqlitePool,
 }
 
 impl AppState {
-    pub fn new(queue: Queue) -> Self {
-        Self{ queue: Arc::new(Mutex::new(queue)) }
+    pub fn new(pool: SqlitePool) -> Self {
+        Self{ pool }
     }
 }

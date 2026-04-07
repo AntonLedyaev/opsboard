@@ -1,7 +1,9 @@
 use std::fmt;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 use rand::{RngExt};
 use serde::{Serialize};
+use crate::db::JobRow;
+use std::str::FromStr;
 
 #[derive(Clone)]
 pub struct Job {
@@ -14,7 +16,7 @@ pub struct Job {
     max_retry_count: u32,
 }
 
-#[derive(Serialize, PartialEq, Eq, Clone)]
+#[derive(Serialize, PartialEq, Eq, Clone, Debug)]
 pub enum JobStatus {
     Queued,
     Running,
@@ -31,14 +33,30 @@ fn format_time_to_string(timestamp: Option<SystemTime>) -> String {
     }
 }
 
-impl fmt::Display for JobStatus {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            JobStatus::Queued => write!(f, "Queued"),
-            JobStatus::Running => write!(f, "Running"),
-            JobStatus::Done => write!(f, "Done"),
-            JobStatus::Failed => write!(f, "Failed")
+
+impl FromStr for JobStatus {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Queued" => Ok(JobStatus::Queued),
+            "Running" => Ok(JobStatus::Running),
+            "Done" => Ok(JobStatus::Done),
+            "Failed" => Ok(JobStatus::Failed),
+            _ => Err(()),
         }
+    }
+}
+
+impl fmt::Display for JobStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            JobStatus::Queued => "Queued",
+            JobStatus::Running => "Running",
+            JobStatus::Done => "Done",
+            JobStatus::Failed => "Failed",
+        };
+        write!(f, "{}", s)
     }
 }
 
@@ -124,6 +142,24 @@ impl Job {
     pub fn print_status(&self) {
         println!("Job Id: {}, Job Name: {}, Job Status: {}, Retry Count: {}, Started At: {}, Finished At: {}",
                  self.id, self.name, self.status, self.retry_count, format_time_to_string(self.started_at), format_time_to_string(self.finished_at));
+    }
+}
+
+fn parse_time(s: u64) -> SystemTime {
+    UNIX_EPOCH + std::time::Duration::from_secs(s)
+}
+
+impl From<JobRow> for Job {
+    fn from(row: JobRow) -> Self {
+        Job {
+            id: row.id,
+            name: row.name,
+            retry_count: row.retry_count,
+            max_retry_count: row.max_retry_count,
+            status: JobStatus::from_str(&row.status.to_string()).unwrap(),
+            started_at: row.started_at.map(parse_time),
+            finished_at: row.finished_at.map(parse_time),
+        }
     }
 }
 

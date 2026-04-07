@@ -3,3 +3,8 @@
 
 # compiled files
 target
+
+# db
+jobs.db
+jobs.db-wal
+jobs.db-shm

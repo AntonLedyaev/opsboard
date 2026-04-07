@@ -1,24 +1,24 @@
 mod job;
-mod queue;
 mod runner;
 mod api;
+mod db;
 mod app_state;
 
 use crate::app_state::AppState;
-use crate::queue::Queue;
+use crate::db::{init_db};
 
 #[tokio::main]
-async fn main() {
-    let queue = Queue::new(vec!["Job1", "Job2"]);
-    let state = AppState::new(queue);
-
+async fn main() -> Result<(), sqlx::Error> {
+    let pool = init_db().await?;
+    let state = AppState::new(pool);
     let app = api::api_router().with_state(state);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+        .await?;
 
     println!("Server running on http://127.0.0.1:3000");
 
     axum::serve(listener, app).await.unwrap();
+
+    Ok(())
 }
