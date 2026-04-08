@@ -8,3 +8,6 @@ target
 jobs.db
 jobs.db-wal
 jobs.db-shm
+
+# compiled js
+crates/frontend/dist
