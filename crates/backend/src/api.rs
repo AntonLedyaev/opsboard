@@ -6,9 +6,11 @@ use axum::{
     Router,
 };
 use axum::extract::State;
+use axum::http::{HeaderValue, Method};
 use axum::routing::post;
 use crate::job::{Job, JobStatus};
 use serde::{Deserialize, Serialize};
+use tower_http::cors::{Any, CorsLayer};
 use crate::app_state::AppState;
 use crate::db::{get_jobs_from_db, insert_job, JobRow};
 use crate::runner::Runner;
@@ -43,8 +45,8 @@ impl From<JobRow> for JobDto {
     }
 }
 
-async fn health() -> StatusCode {
-    StatusCode::OK
+async fn health() -> Result<(StatusCode, Json<String>), StatusCode> {
+    Ok((StatusCode::OK, Json(String::from("Healthcheck OK"))))
 }
 
 async fn get_jobs(State(state): State<AppState>) -> Result<(StatusCode, Json<Vec<JobDto>>), StatusCode> {
@@ -90,5 +92,11 @@ async fn run_queue(State(state): State<AppState>) -> Result<StatusCode, StatusCo
 }
 
 pub fn api_router() -> Router<AppState> {
-    Router::new().route("/health", get(health)).route("/jobs", get(get_jobs).post(create_job)).route("/run", post(run_queue))
+    let cors = CorsLayer::new()
+        .allow_origin("http://127.0.0.1:8080".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://localhost.:8080".parse::<HeaderValue>().unwrap())
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+        .allow_headers(Any);
+
+    Router::new().route("/health", get(health)).route("/jobs", get(get_jobs).post(create_job)).route("/run", post(run_queue)).layer(cors)
 }
