@@ -1,6 +1,8 @@
 use sqlx::SqlitePool;
 use crate::db::{get_next_queued_job, update_job};
 use crate::job::{Job};
+use tokio::time::{sleep, Duration};
+use rand::{RngExt};
 
 pub struct Runner {}
 
@@ -22,6 +24,13 @@ impl Runner {
 
                 job.start();
                 update_job(pool, &job).await?;
+
+                let secs = {
+                    let mut rng = rand::rng();
+                    rng.random_range(0..=5)
+                };
+
+                sleep(Duration::from_secs(secs)).await;
 
                 if check_is_failing_job(&job) {
                     job.fail();
