@@ -105,3 +105,9 @@ pub async fn update_job(pool: &SqlitePool, runned_job: &Job) -> Result<(), sqlx:
 
     Ok(())
 }
+
+pub async fn delete_job_from_db(pool: &SqlitePool, job_id: u32) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM jobs WHERE id = ?").bind(job_id).execute(pool).await?;
+
+    Ok(())
+}

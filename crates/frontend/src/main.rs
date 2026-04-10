@@ -3,6 +3,7 @@ use leptos::mount_to_body;
 mod app;
 mod pages;
 mod api;
+mod components;
 
 fn main() {
     console_error_panic_hook::set_once();

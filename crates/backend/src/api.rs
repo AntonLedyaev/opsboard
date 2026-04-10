@@ -12,7 +12,7 @@ use crate::job::{Job, JobStatus};
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use crate::app_state::AppState;
-use crate::db::{get_jobs_from_db, insert_job, JobRow};
+use crate::db::{delete_job_from_db, get_jobs_from_db, insert_job, JobRow};
 use crate::runner::Runner;
 
 #[derive(Serialize)]
@@ -91,6 +91,22 @@ async fn run_queue(State(state): State<AppState>) -> Result<StatusCode, StatusCo
     Ok(StatusCode::OK)
 }
 
+#[derive(Deserialize)]
+pub struct DeleteJobRequest {
+    id: u32
+} 
+
+async fn delete_job(State(state): State<AppState>, Json(payload): Json<DeleteJobRequest>) -> Result<StatusCode, StatusCode> {
+    let pool = state.pool;
+
+    delete_job_from_db(&pool, payload.id).await.map_err(|e| {
+        eprintln!("delete_job error: {e}");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(StatusCode::OK)
+}
+
 pub fn api_router() -> Router<AppState> {
     let cors = CorsLayer::new()
         .allow_origin("http://127.0.0.1:8080".parse::<HeaderValue>().unwrap())
@@ -98,5 +114,10 @@ pub fn api_router() -> Router<AppState> {
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
         .allow_headers(Any);
 
-    Router::new().route("/health", get(health)).route("/jobs", get(get_jobs).post(create_job)).route("/run", post(run_queue)).layer(cors)
+    Router::new()
+        .route("/health", get(health))
+        .route("/jobs", get(get_jobs).post(create_job))
+        .route("/run", post(run_queue))
+        .route("/delete", post(delete_job))
+        .layer(cors)
 }

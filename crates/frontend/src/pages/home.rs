@@ -1,9 +1,18 @@
 use std::time::Duration;
-use leptos::{component, event_target_value, spawn_local, view, CollectView, Effect, IntoView, Suspense};
-use leptos::prelude::*;
-use gloo_timers::future::sleep;
 
-use crate::api::{fetch_jobs, fetch_jobs_post, run_jobs, CreateJobRequestPayload, JobView};
+use gloo_timers::future::sleep;
+use leptos::ev::SubmitEvent;
+use leptos::prelude::*;
+use leptos::{component, spawn_local, view, Effect, IntoView};
+
+use crate::api::{
+    delete_job, fetch_jobs, fetch_jobs_post, run_jobs, CreateJobRequestPayload,
+    DeleteJobRequestPayload, JobView,
+};
+use crate::components::header_section::HeaderSection;
+use crate::components::jobs_table::JobsTable;
+use crate::components::quick_actions::QuickActions;
+use crate::components::summary_cards::{JobSummary, SummaryCards};
 
 #[component]
 pub fn HomePage() -> impl IntoView {
@@ -15,105 +24,125 @@ pub fn HomePage() -> impl IntoView {
     let (loading, set_loading) = create_signal(true);
     let (error, set_error) = create_signal(None::<String>);
 
+    let refresh_jobs = move || {
+        let set_jobs = set_jobs;
+        let set_loading = set_loading;
+        let set_error = set_error;
+
+        spawn_local(async move {
+            set_loading.set(true);
+
+            match fetch_jobs().await {
+                Ok(data) => {
+                    set_jobs.set(data);
+                    set_error.set(None);
+                }
+                Err(err) => {
+                    set_error.set(Some(format!("Request error: {err}")));
+                }
+            }
+
+            set_loading.set(false);
+        });
+    };
+
     Effect::new(move |_| {
+        refresh_jobs();
+
         spawn_local({
-            let set_jobs = set_jobs;
-            let set_loading = set_loading;
-            let set_error = set_error;
+            let refresh_jobs = refresh_jobs;
 
             async move {
                 loop {
-                    set_loading.set(true);
-
-                    match fetch_jobs().await {
-                        Ok(data) => {
-                            set_jobs.set(data);
-                            set_error.set(None);
-                        }
-                        Err(e) => {
-                            set_error.set(Some(format!("Ошибка запроса: {e}")));
-                        }
-                    }
-
-                    set_loading.set(false);
-                    sleep(Duration::from_secs(1)).await;
+                    sleep(Duration::from_secs(3)).await;
+                    refresh_jobs();
                 }
             }
         });
     });
 
+    let summary = Memo::new(move |_| JobSummary::from_jobs(&jobs.get()));
 
-    let on_submit = move |_| {
-        let payload = CreateJobRequestPayload {
-            name: job_name_input.get(),
-        };
-        let set_result = set_job_created.clone();
+    let on_submit = move |ev: SubmitEvent| {
+        ev.prevent_default();
+
+        let name = job_name_input.get().trim().to_string();
+        if name.is_empty() {
+            set_job_created.set(Some("Job name is required".into()));
+            return;
+        }
+
+        let payload = CreateJobRequestPayload { name };
+        let set_job_created = set_job_created;
+        let set_job_name_input = set_job_name_input;
+        let refresh_jobs = refresh_jobs;
 
         spawn_local(async move {
             match fetch_jobs_post(payload).await {
                 Ok(data) => {
                     set_job_created.set(Some(data));
+                    set_job_name_input.set(String::new());
+                    refresh_jobs();
                 }
-                Err(_) => set_result.set(Some("Ошибка запроса".into())),
+                Err(err) => set_job_created.set(Some(format!("Request error: {err}"))),
             }
         });
     };
 
-
     let on_run_jobs_click = move |_| {
+        let refresh_jobs = refresh_jobs;
+
         spawn_local(async move {
             match run_jobs().await {
                 Ok(data) => {
                     set_run_result.set(Some(data));
+                    refresh_jobs();
                 }
-                Err(_) => set_run_result.set(Some("Ошибка запроса".into())),
+                Err(err) => set_run_result.set(Some(format!("Request error: {err}"))),
             }
         })
     };
 
-    view! {
-        <h1>"OpsBoard"</h1>
+    let on_refresh_click = move |_| {
+        refresh_jobs();
+    };
 
-        <input
-            type="text"
-            placeholder="Print Job Name"
-            on:input=move |ev| {
-                set_job_name_input.set(event_target_value(&ev));
+    let on_delete = move |id: u32| {
+        let refresh_jobs = refresh_jobs;
+        let set_run_result = set_run_result;
+
+        spawn_local(async move {
+            let payload = DeleteJobRequestPayload { id };
+
+            match delete_job(payload).await {
+                Ok(message) => {
+                    set_run_result.set(Some(message));
+                    refresh_jobs();
+                }
+                Err(err) => set_run_result.set(Some(format!("Request error: {err}"))),
             }
-        />
+        });
+    };
 
-        <button on:click=on_submit>
-            "Create Job"
-        </button>
+    view! {
+        <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.16),transparent_30%),radial-gradient(circle_at_top_right,rgba(34,197,94,0.12),transparent_25%),linear-gradient(180deg,#f8fbff_0%,#eef4f8_100%)] px-4 py-8 md:px-5 md:py-10">
+            <div class="mx-auto flex max-w-[1180px] flex-col gap-6">
+                <HeaderSection loading=loading error=error />
 
-        <button on:click=on_run_jobs_click>
-            "Run Jobs"
-        </button>
+                <QuickActions
+                    job_name=job_name_input
+                    set_job_name=set_job_name_input
+                    on_submit=on_submit
+                    on_run_queue=on_run_jobs_click
+                    on_refresh=on_refresh_click
+                    job_created=job_created
+                    run_result=run_result
+                />
 
+                <SummaryCards summary=summary />
 
-        <Suspense fallback=|| view! { <p>"Загрузка..."</p> }>
-                {move || {
-                    jobs.get()
-                        .into_iter()
-                        .map(|job| {
-                            view! {
-                                <li>
-                                    <b>{job.name}</b>
-                                    " | id: " {job.id}
-                                    " | status: " {job.status}
-                                    " | retry_count: " {job.retry_count}
-                                </li>
-                            }
-                        })
-                        .collect_view()
-                }}
-
-            {move || job_created.get().map(|r| view! {
-                <p>{r}</p>
-            })}
-            {move || run_result.get().map(|text| view! {
-                <p>{text}</p>
-            })}
-        </Suspense>
+                <JobsTable jobs=jobs loading=loading on_delete=on_delete />
+            </div>
+        </div>
     }
 }

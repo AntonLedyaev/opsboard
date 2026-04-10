@@ -2,9 +2,22 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <title>Leptos SPA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpsBoard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ["Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+                    },
+                },
+            },
+        };
+    </script>
 </head>
-<body>
+<body class="font-sans text-slate-900 antialiased">
 <div id="root"></div>
 </body>
 </html>
