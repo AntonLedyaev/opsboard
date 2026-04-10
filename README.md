@@ -140,13 +140,13 @@ Job execution is simulated:
 The frontend dashboard provides:
 
 * **Header section** 
-* <img width="1212" height="196" alt="image" src="https://github.com/user-attachments/assets/ffc0b64b-f5fc-4cfd-ba6a-17459fecb335" />
+<img width="1212" height="196" alt="image" src="https://github.com/user-attachments/assets/ffc0b64b-f5fc-4cfd-ba6a-17459fecb335" />
 * **Quick actions panel** (create job, run queue, refresh)
-* <img width="1218" height="161" alt="image" src="https://github.com/user-attachments/assets/04c85944-d75c-4ec9-80de-597526fd657b" />
+<img width="1218" height="161" alt="image" src="https://github.com/user-attachments/assets/04c85944-d75c-4ec9-80de-597526fd657b" />
 * **Summary cards** with aggregated job states
-* <img width="1203" height="181" alt="image" src="https://github.com/user-attachments/assets/872bd112-fa84-403e-a85d-3481042009cb" />
+<img width="1203" height="181" alt="image" src="https://github.com/user-attachments/assets/872bd112-fa84-403e-a85d-3481042009cb" />
 * **Jobs table** with actions and status badges
-* <img width="1209" height="574" alt="image" src="https://github.com/user-attachments/assets/f954702a-df31-4401-839b-bb065f1c45bc" />
+<img width="1209" height="574" alt="image" src="https://github.com/user-attachments/assets/f954702a-df31-4401-839b-bb065f1c45bc" />
 
 
 ---
